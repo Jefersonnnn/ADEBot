@@ -1,6 +1,7 @@
 config.ini
 sessao.pickle
 teste.html
+database.db
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,pycharm+all

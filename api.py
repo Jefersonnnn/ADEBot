@@ -5,8 +5,8 @@ import requests
 import pickle
 from bs4 import BeautifulSoup
 
-USERNAME = ''
-PASSWORD = ''
+USERNAME = os.getenv("ADE_USERNAME")
+PASSWORD = os.getenv("ADE_PASSWORD")
 BASE_URL = 'https://adembraco.com.br/'
 
 
@@ -17,7 +17,7 @@ def delete_session():
         return
 
 
-def load_session():
+def load_session() -> requests.Session:
     try:
         with open('sessao.pickle', 'rb') as file_s:
             sessao = pickle.load(file_s)
@@ -30,7 +30,11 @@ def load_session():
 def login():
     session = load_session()
     if session:
-        return session
+        if session.get(url=BASE_URL + 'reservas/quadras/').url == BASE_URL + 'reservas/login/':
+            delete_session()
+        else:
+            return session
+
     # Realizar o login no site
     session = requests.Session()
     login_url = BASE_URL + 'reservas/login/'
@@ -70,29 +74,29 @@ def listar_quadras(session: requests.Session):
     return quadras
 
 
-def listar_datas_disponiveis(session: requests.Session, quadra_id: int):
+def listar_datas_disponiveis(session: requests.Session, id_quadra: int) -> list[dict]:
     datas_url = BASE_URL + "wp-content/themes/template_ade/ajax/list.available_dates.php"
-    payload = {'spaceID': quadra_id,
+    payload = {'spaceID': id_quadra,
                'type': 'avulso'}
 
     lista_datas = session.post(url=datas_url, data=payload)
-    return lista_datas.json()
+    return lista_datas.json()['days']
 
 
-def listar_horarios_disponiveis(session: requests.Session, quadra_id: int, data: datetime.date):
+def listar_horarios_disponiveis(session: requests.Session, id_quadra: int, data: datetime.date):
     horarios_url = BASE_URL + "wp-content/themes/template_ade/ajax/list.hours.php"
 
-    payload = {'space_id': {quadra_id},
+    payload = {'space_id': {id_quadra},
                'date_search': data.strftime('%Y-%m-%d'),
                'type': 'avulso'}
     lista_horarios = session.post(horarios_url, data=payload)
-    return lista_horarios.json()
+    return lista_horarios.json()['hours']
 
 
 if __name__ == "__main__":
     session = login()
-    datas = listar_datas_disponiveis(session, quadra_id=2399)
+    datas = listar_datas_disponiveis(session, id_quadra=2399)
 
-    horarios = listar_horarios_disponiveis(session, quadra_id=2399, data=datetime.date(2023, 2, 24))
+    horarios = listar_horarios_disponiveis(session, id_quadra=2399, data=datetime.date(2023, 2, 24))
 
     print(datas, '\n\n', horarios)
