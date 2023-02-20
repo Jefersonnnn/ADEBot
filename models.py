@@ -57,13 +57,13 @@ class Alertas(Base):
     id = Column(Integer, primary_key=True)
     id_quadra = Column(Integer, nullable=False)
     init_date = Column(DateTime, nullable=False)
-    telegram_chat_id = Column(Integer, nullable=False)
+    chat_id = Column(Integer, nullable=False)
     usuario_informado = Column(Boolean, default=False, nullable=False)
 
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
-    __table_args = (UniqueConstraint('id_quadra', 'data', 'horario', 'telegram_chat_id'), {})
+    __table_args = (UniqueConstraint('id_quadra', 'data', 'horario', 'chat_id'), {})
 
 
 # Cria o engine para o banco de dados SQLite

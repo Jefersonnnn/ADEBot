@@ -81,7 +81,7 @@ async def remover_alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     _id_alerta = parametros[1]
     alerta = db_session.query(Alertas).filter_by(
         id=_id_alerta,
-        telegram_chat_id=update.message.chat_id).first()
+        chat_id=update.message.chat_id).first()
 
     if not alerta:
         await update.message.reply_text(f"Alerta [id={_id_alerta}] não encontrado!")
@@ -99,7 +99,7 @@ async def remover_alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def listar_alertas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     alertas = db_session.query(Alertas).filter_by(
         usuario_informado=False,
-        telegram_chat_id=update.message.chat_id) \
+       chat_id=update.message.chat_id) \
         .all()
 
     if not alertas:
@@ -156,7 +156,7 @@ async def avisar_usuarios(context):
 
             # Finally, send the message
             await context.bot.send_message(
-                chat_id=aviso.telegram_chat_id, text=message, parse_mode=ParseMode.HTML
+                chat_id=aviso.chat_id, text=message, parse_mode=ParseMode.HTML
             )
             aviso.usuario_informado = True
             db_session.commit()
@@ -194,7 +194,7 @@ async def alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         usuario_informado=False,
         id_quadra=quadra.id,
         init_date=data,
-        telegram_chat_id=update.message.chat_id
+        chat_id=update.message.chat_id
     ).first()
 
     if alerta:
@@ -205,7 +205,7 @@ async def alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         alerta_quadra = Alertas(
             id_quadra=quadra.id,
             init_date=data,
-            telegram_chat_id=update.message.chat_id
+            chat_id=update.message.chat_id
         )
 
         db_session.add(alerta_quadra)
@@ -218,20 +218,17 @@ async def alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(text="Alerta registrado com sucesso!")
 
 
-async def etl_quadras(context):
-    logger.info("Buscando novas quadras!")
+async def etl_quadras(context=None):
     session = login()
     extrair_quadras(session)
 
 
-async def etl_datas(context):
-    logger.info("Buscando novas datas!")
+async def etl_datas(context=None):
     session = login()
     extrair_datas_atuais(session)
 
 
-async def etl_horarios(context):
-    logger.info("Buscando novos horarios!")
+async def etl_horarios(context=None):
     session = login()
     extrair_horarios(session)
 
@@ -255,10 +252,10 @@ def main() -> None:
     # ...and the error handler
     app.add_error_handler(error_handler)
 
-    app.job_queue.run_repeating(etl_quadras, interval=60 * 60 * 24 * 7, first=0)
+    app.job_queue.run_repeating(etl_quadras, interval=60 * 60 * 24 * 7, first=0, )
     app.job_queue.run_repeating(etl_datas, interval=60 * 60 * 12, first=0)
-    app.job_queue.run_repeating(etl_horarios, interval=60 * 10, first=0)
-    app.job_queue.run_repeating(avisar_usuarios, interval=60 * 5, first=0)
+    app.job_queue.run_repeating(etl_horarios, interval=60 * 5, first=0)
+    app.job_queue.run_repeating(avisar_usuarios, interval=60 * 2, first=0)
 
     # Run the bot until the user presses Ctrl-C
     app.run_polling()

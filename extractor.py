@@ -58,6 +58,7 @@ def extrair_horarios(session):
             horarios = listar_horarios_disponiveis(session, id_quadra=data.quadra.id_ade, data=data.data)
             for hora in horarios:
                 _init_date = datetime.datetime.strptime(hora['init_date'], '%Y-%m-%d %H:%M:%S')
+                logger.info(f"Verificando data: {_init_date}")
                 _qh = db_session.query(QuadraHorario).filter(
                     QuadraHorario.init_date == _init_date,
                     QuadraHorario.data_id == data.id) \
@@ -65,6 +66,7 @@ def extrair_horarios(session):
                 if not _qh:
                     db_session.add(QuadraHorario(init_date=_init_date, disponivel=not hora['booked'], data_id=data.id))
                 else:
+                    logger.info(f"Atualizando data: {_init_date} - Reservado {_qh.disponivel} -> {not hora['booked']}")
                     _qh.disponivel = not hora['booked']
                 db_session.commit()
     logger.info("EXTRAIR_HORARIOS FINALIZADO")
