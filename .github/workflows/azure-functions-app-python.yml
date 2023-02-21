@@ -52,18 +52,20 @@ jobs:
     environment:
       name: 'production'
       url: ${{ steps.deploy-to-function.outputs.webapp-url }}
-
     steps:
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
       - name: Download artifact from build job
         uses: actions/download-artifact@v2
         with:
           name: python-app
           path: .
-
       - name: 'Deploy to Azure Functions'
         uses: Azure/functions-action@v1
         id: deploy-to-function
         with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
           app-name: 'adeembbot'
           slot-name: 'production'
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
