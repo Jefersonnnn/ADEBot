@@ -253,9 +253,9 @@ def main() -> None:
     app.add_error_handler(error_handler)
 
     app.job_queue.run_repeating(etl_quadras, interval=60 * 60 * 24 * 7, first=0, )
-    app.job_queue.run_repeating(etl_datas, interval=60 * 60 * 12, first=0)
-    app.job_queue.run_repeating(etl_horarios, interval=60 * 5, first=0)
-    app.job_queue.run_repeating(avisar_usuarios, interval=60 * 2, first=0)
+    app.job_queue.run_repeating(etl_datas, interval=60, first=0)
+    app.job_queue.run_repeating(etl_horarios, interval=60 * 10, first=0)
+    app.job_queue.run_repeating(avisar_usuarios, interval=60 * 5, first=0)
 
     # Run the bot until the user presses Ctrl-C
     app.run_polling()

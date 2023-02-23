@@ -12,6 +12,35 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _excluir_alertas_antigos():
+    _data_atual = datetime.datetime.now()
+    _alertas = db_session.query(Alertas).filter(
+        Alertas.init_date < _data_atual
+    ).all()
+
+    if len(_alertas) > 0:
+        for alerta in _alertas:
+            db_session.delete(alerta)
+        db_session.commit()
+
+
+def _excluir_datas_antigas():
+    _data_atual = datetime.datetime.now()
+    _qd = db_session.query(QuadraData).filter(
+        QuadraData.data < _data_atual.date()
+    ).all()
+
+    if len(_qd) > 0:
+        for q in _qd:
+            db_session.delete(q)
+        db_session.commit()
+
+
+def _clean_database():
+    _excluir_datas_antigas()
+    _excluir_alertas_antigos()
+
+
 def extrair_quadras(session):
     logger.info("EXTRAIR_QUADRAS INICIADO")
     quadras = listar_quadras(session)
@@ -26,8 +55,9 @@ def extrair_quadras(session):
 
 
 def extrair_datas_atuais(session):
+    _clean_database()
     logger.info("EXTRAIR_DATAS_ATUAIS INICIADO")
-    quadras = db_session.query(Quadra).all()
+    quadras = db_session.query(Quadra).filter(Alertas.id_quadra == Quadra.id).all()
 
     for quadra in quadras:
         logger.info(f"--QUADRA {quadra.nome}")

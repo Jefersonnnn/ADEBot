@@ -34,6 +34,9 @@ class QuadraData(Base):
 
     __table_args = (UniqueConstraint('data', 'id_quadra'), {})
 
+    def __repr__(self):
+        return f'<id={self.id}, data={self.data}, id_quadra={self.id_quadra}'
+
 
 # Modelo de dados para a tabela Horarios
 class QuadraHorario(Base):
@@ -64,6 +67,9 @@ class Alertas(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
     __table_args = (UniqueConstraint('id_quadra', 'data', 'horario', 'chat_id'), {})
+
+    def __repr__(self):
+        return f'<id={self.id}, date={self.init_date}, id_quadra={self.id_quadra}, user_informado:{self.usuario_informado}'
 
 
 # Cria o engine para o banco de dados SQLite
