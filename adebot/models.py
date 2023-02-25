@@ -62,6 +62,7 @@ class Alertas(Base):
     init_date = Column(DateTime, nullable=False)
     chat_id = Column(Integer, nullable=False)
     usuario_informado = Column(Boolean, default=False, nullable=False)
+    is_recurring = Column(Boolean, default=False, nullable=False)
 
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

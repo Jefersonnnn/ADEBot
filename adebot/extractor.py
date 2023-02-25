@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 import logging
 import time
 
@@ -12,14 +12,35 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _gerar_alerta_recorrente(current_alert: Alertas):
+    if not current_alert.is_recurring:
+        return
+
+    next_day_week = current_alert.init_date + timedelta(weeks=1)
+
+    new_alert = Alertas(
+        id_quadra=current_alert.id_quadra,
+        init_date=next_day_week,
+        chat_id=current_alert.chat_id,
+        is_recurring=current_alert.is_recurring
+    )
+    try:
+        db_session.add(new_alert)
+        db_session.commit()
+    except Exception as e:
+        logger.error("Não foi possível gerar alerta: ", e)
+        db_session.rollback()
+
+
 def _excluir_alertas_antigos():
-    _data_atual = datetime.datetime.now()
+    _data_atual = datetime.now()
     _alertas = db_session.query(Alertas).filter(
         Alertas.init_date < _data_atual
     ).all()
 
     if len(_alertas) > 0:
         for alerta in _alertas:
+            _gerar_alerta_recorrente(alerta)
             try:
                 db_session.delete(alerta)
                 db_session.commit()
@@ -29,7 +50,7 @@ def _excluir_alertas_antigos():
 
 
 def _excluir_datas_antigas():
-    _data_atual = datetime.datetime.now()
+    _data_atual = datetime.now()
     _qd = db_session.query(QuadraData).filter(
         QuadraData.data < _data_atual.date()
     ).all()
@@ -72,7 +93,7 @@ def extrair_datas_atuais(session):
         time.sleep(5)  # Aguardar
         datas = listar_datas_disponiveis(session, id_quadra=quadra.id_ade)
         for data in datas:
-            _data = datetime.datetime.strptime(list(data.keys())[0], '%Y-%m-%d').date()
+            _data = datetime.strptime(list(data.keys())[0], '%Y-%m-%d').date()
             logger.info(f"--DATA {_data}")
             _qd = db_session.query(QuadraData).filter_by(id_quadra=quadra.id, data=_data).first()
             if not _qd:
@@ -82,6 +103,8 @@ def extrair_datas_atuais(session):
 
 
 def extrair_horarios(session):
+    _clean_database()
+
     logger.info("EXTRAIR_HORARIOS INICIADO")
     avisos = db_session.query(Alertas).filter_by(usuario_informado=False).all()
 
@@ -95,7 +118,7 @@ def extrair_horarios(session):
             time.sleep(5)
             horarios = listar_horarios_disponiveis(session, id_quadra=data.quadra.id_ade, data=data.data)
             for hora in horarios:
-                _init_date = datetime.datetime.strptime(hora['init_date'], '%Y-%m-%d %H:%M:%S')
+                _init_date = datetime.strptime(hora['init_date'], '%Y-%m-%d %H:%M:%S')
                 logger.info(f"Verificando data: {_init_date}")
                 _qh = db_session.query(QuadraHorario).filter(
                     QuadraHorario.init_date == _init_date,
@@ -110,12 +133,13 @@ def extrair_horarios(session):
     logger.info("EXTRAIR_HORARIOS FINALIZADO")
 
 
-def run():
-    session = login()
-    extrair_quadras(session)
-    extrair_datas_atuais(session)
-    # extrair_horarios(session)
-
-
 if __name__ == '__main__':
-    run()
+    alerta_quadra = Alertas(
+        id=1,
+        id_quadra=4,
+        init_date=datetime(year=2023, month=3, day=1, hour=20, minute=0),
+        chat_id=1234,
+        is_recurring=True
+    )
+
+    _gerar_alerta_recorrente(alerta_quadra)
