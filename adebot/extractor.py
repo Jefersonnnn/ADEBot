@@ -2,8 +2,8 @@ import datetime
 import logging
 import time
 
-from api import login, listar_quadras, listar_datas_disponiveis, listar_horarios_disponiveis
-from models import session as db_session, Quadra, QuadraHorario, QuadraData, Alertas
+from adebot.api import login, listar_quadras, listar_datas_disponiveis, listar_horarios_disponiveis
+from adebot.models import session as db_session, Quadra, QuadraHorario, QuadraData, Alertas
 
 # Enable logging
 logging.basicConfig(
@@ -20,8 +20,12 @@ def _excluir_alertas_antigos():
 
     if len(_alertas) > 0:
         for alerta in _alertas:
-            db_session.delete(alerta)
-        db_session.commit()
+            try:
+                db_session.delete(alerta)
+                db_session.commit()
+            except Exception as e:
+                logger.error("Não foi possível deletar uma data antiga: ", e)
+                db_session.rollback()
 
 
 def _excluir_datas_antigas():
@@ -32,8 +36,12 @@ def _excluir_datas_antigas():
 
     if len(_qd) > 0:
         for q in _qd:
-            db_session.delete(q)
-        db_session.commit()
+            try:
+                db_session.delete(q)
+                db_session.commit()
+            except Exception as e:
+                logger.error("Não foi possível deletar uma data antiga: ", e)
+                db_session.rollback()
 
 
 def _clean_database():

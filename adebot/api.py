@@ -45,7 +45,8 @@ def login():
                'goto': '',
                'Entrar': 'Entrar'}
 
-    session.post(login_url, data=payload)
+    if session.post(login_url, data=payload).url == BASE_URL + 'reservas/login/':
+        raise Exception("Não foi possível realizar o login no site")
 
     # Salvar sessao em um arquivo usando pickle
     delete_session()
@@ -65,6 +66,9 @@ def listar_quadras(session: requests.Session):
     # Encontrar o elemento 'select' com o id='select_espaco'
     select_espaco = soup.find('select', {'id': 'select_espaco'})
 
+    if not select_espaco:
+        return []
+
     quadras = []
     for option in select_espaco.find_all('option'):
         nome = option.text.strip()
@@ -80,7 +84,8 @@ def listar_datas_disponiveis(session, id_quadra):
                'type': 'avulso'}
 
     lista_datas = session.post(url=datas_url, data=payload)
-    return lista_datas.json()['days']
+    if 'days' in lista_datas.json():
+        return lista_datas.json()['days']
 
 
 def listar_horarios_disponiveis(session: requests.Session, id_quadra: int, data: datetime.date):
