@@ -248,8 +248,8 @@ def main() -> None:
     # remove jobs
     app.job_queue.scheduler.remove_all_jobs()
 
-    _etl_datas()
     _etl_quadras()
+    _etl_datas()
 
     # Register the commands...
     app.add_handler(CommandHandler(["start", "help", "menu"], start))
