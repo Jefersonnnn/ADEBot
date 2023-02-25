@@ -74,7 +74,7 @@ def listar_quadras(session: requests.Session):
     return quadras
 
 
-def listar_datas_disponiveis(session: requests.Session, id_quadra: int) -> list[dict]:
+def listar_datas_disponiveis(session, id_quadra):
     datas_url = BASE_URL + "wp-content/themes/template_ade/ajax/list.available_dates.php"
     payload = {'spaceID': id_quadra,
                'type': 'avulso'}

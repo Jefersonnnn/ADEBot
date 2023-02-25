@@ -14,7 +14,7 @@ SQLAlchemy = "^2.0.4"
 [tool.poetry.dev-dependencies]
 
 [tool.poetry.scripts]
-run-app = "main.py:main"
+run-app = "main:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
