@@ -108,7 +108,9 @@ async def listar_alertas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     resp_msg = ''
     for alerta in alertas:
-        resp_msg += f"id: {alerta.id} - {datetime.strftime(alerta.init_date, '%d/%m/%Y %H:%M')} - Quadra: {alerta.id_quadra}\n"
+        resp_msg += f"id: {alerta.id} - " \
+                    f"{datetime.strftime(alerta.init_date, '%d/%m/%Y %H:%M')} - " \
+                    f"Quadra: {alerta.id_quadra} {('(recorrente)' if alerta.is_recurring else None)}\n"
 
     await update.message.reply_text(resp_msg)
 
@@ -128,9 +130,9 @@ async def listar_quadras(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def avisar_usuarios(context):
-    avisos = db_session.query(Alertas).filter_by(usuario_informado=False).all()
-    for aviso in avisos:
-        init_date = aviso.init_date
+    alertas = db_session.query(Alertas).filter_by(usuario_informado=False).all()
+    for alerta in alertas:
+        init_date = alerta.init_date
         if init_date.minute == 0:
             next_date = init_date + timedelta(minutes=59)
         elif init_date.minute == 30:
@@ -140,7 +142,7 @@ async def avisar_usuarios(context):
 
         horario_disponivel = db_session.query(QuadraHorario).filter(
             QuadraHorario.disponivel == 1,
-            QuadraHorario.data.has(QuadraData.id_quadra == aviso.id_quadra),
+            QuadraHorario.data.has(QuadraData.id_quadra == alerta.id_quadra),
             QuadraHorario.init_date.between(init_date, next_date)
         ).first()
 
@@ -156,9 +158,9 @@ async def avisar_usuarios(context):
 
             # Finally, send the message
             await context.bot.send_message(
-                chat_id=aviso.chat_id, text=message, parse_mode=ParseMode.HTML
+                chat_id=alerta.chat_id, text=message, parse_mode=ParseMode.HTML
             )
-            aviso.usuario_informado = True
+            alerta.usuario_informado = True
             db_session.commit()
 
 
@@ -166,10 +168,12 @@ async def alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Obter a data e o id da quadra a partir da mensagem do usuário
     mensagem = update.message.text
     parametros = mensagem.split()
-    if len(parametros) <= 1 or len(parametros) > 4:
+    if len(parametros) <= 1 or len(parametros) > 5:
         message = ""
         message += "/alerta DD/MM/YYYY HORARIO ID_DA_QUADRA\n"
+        message += "flag: -r (irá repetir no mesmo dia da semana)\n"
         message += "\tEx: /alerta 12/12/2023 20:00 123\n"
+        message += "\tEx: /alerta 12/12/2023 20:00 123 -r\n"
         await update.message.reply_text(message)
         return
 
@@ -177,10 +181,19 @@ async def alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     horario = parametros[2]
     id_quadra = parametros[3]
 
+    is_recurring = False
+    if len(parametros) == 5:
+        if parametros[4] != '-r':
+            is_recurring = False
+            await update.message.reply_text(text="Formato do alerta está incorreto.")
+            return
+        is_recurring = True
+
     data = validate_date_and_convert(data, horario)
     if not data:
         await update.message.reply_text(text="Data não está no formato correto [dia/mês/ano] ex 01/01/2023.")
         return
+
     if data <= datetime.now():
         await update.message.reply_text(text="Não podemos te alertar no passado ainda :/.")
         return
@@ -194,7 +207,7 @@ async def alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         usuario_informado=False,
         id_quadra=quadra.id,
         init_date=data,
-        chat_id=update.message.chat_id
+        chat_id=update.message.chat_id,
     ).first()
 
     if alerta:
@@ -205,7 +218,8 @@ async def alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         alerta_quadra = Alertas(
             id_quadra=quadra.id,
             init_date=data,
-            chat_id=update.message.chat_id
+            chat_id=update.message.chat_id,
+            is_recurring=is_recurring
         )
 
         db_session.add(alerta_quadra)
