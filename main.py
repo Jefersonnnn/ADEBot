@@ -1,4 +1,5 @@
 import os
+import threading
 from datetime import datetime, time, timedelta
 import html
 import json
@@ -99,7 +100,7 @@ async def remover_alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def listar_alertas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     alertas = db_session.query(Alertas).filter_by(
         usuario_informado=False,
-       chat_id=update.message.chat_id) \
+        chat_id=update.message.chat_id) \
         .all()
 
     if not alertas:
@@ -222,8 +223,16 @@ async def etl_quadras(context=None):
     session = login()
     extrair_quadras(session)
 
+def _etl_quadras(context=None):
+    session = login()
+    extrair_quadras(session)
+
 
 async def etl_datas(context=None):
+    session = login()
+    extrair_datas_atuais(session)
+
+def _etl_datas(context=None):
     session = login()
     extrair_datas_atuais(session)
 
@@ -239,6 +248,9 @@ def main() -> None:
     # remove jobs
     app.job_queue.scheduler.remove_all_jobs()
 
+    _etl_datas()
+    _etl_quadras()
+
     # Register the commands...
     app.add_handler(CommandHandler(["start", "help", "menu"], start))
     app.add_handler(CommandHandler(['listar_quadras', 'lista_quadras', 'quadras'], listar_quadras))
@@ -252,7 +264,7 @@ def main() -> None:
     # ...and the error handler
     app.add_error_handler(error_handler)
 
-    app.job_queue.run_repeating(etl_quadras, interval=60, first=0)
+    app.job_queue.run_repeating(etl_quadras, interval=60*60*24*7, first=0)
     app.job_queue.run_repeating(etl_datas, interval=60 * 60 * 12, first=0)
     app.job_queue.run_repeating(etl_horarios, interval=60 * 10, first=0)
     app.job_queue.run_repeating(avisar_usuarios, interval=60 * 5, first=0)
