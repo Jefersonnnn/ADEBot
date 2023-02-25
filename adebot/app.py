@@ -9,6 +9,8 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters, Application
 
+from sqlalchemy.orm import class_mapper
+
 from adebot.api import login
 from adebot.extractor import extrair_quadras, extrair_datas_atuais, extrair_horarios
 
@@ -113,6 +115,51 @@ async def listar_alertas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     f"Quadra: {alerta.id_quadra} {('(recorrente)' if alerta.is_recurring else None)}\n"
 
     await update.message.reply_text(resp_msg)
+
+
+async def debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if str(update.message.chat_id) != DEVELOPER_CHAT_ID:
+        return
+    _msg = "Tabelas disponiveis: \n" \
+           "quadras_horarios \n" \
+           "quadras_datas \n " \
+           "quadras \n " \
+           "alertas"
+    await update.message.reply_text(_msg)
+
+    mensagem = update.message.text
+    parametros = mensagem.split()
+    if len(parametros) != 2:
+        return
+
+    tablename = parametros[1]
+
+    table_list = None
+    lista_json = []
+    if tablename == 'quadras_horarios':
+        table_list = db_session.query(QuadraHorario).all()
+        if table_list:
+            for t in table_list:
+                t_dict = {}
+                for column in class_mapper(QuadraHorario).columns:
+                    t_dict[column.name] = str(getattr(t, column.name))
+                lista_json.append(t_dict)
+    elif tablename == 'quadras_datas':
+        table_list = db_session.query(QuadraData).all()
+    elif tablename == 'quadras':
+        table_list = db_session.query(Quadra).all()
+    elif tablename == 'alertas':
+        table_list = db_session.query(Alertas).all()
+    else:
+        await update.message.reply_text(f'Tabela {tablename} não encontrada!')
+        return
+
+    if not table_list:
+        await update.message.reply_text("Nenhum dados cadastrado!")
+        return
+
+    json_data = json.dumps(lista_json[:5])
+    await update.message.reply_text(json_data)
 
 
 async def listar_quadras(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -272,6 +319,7 @@ def main():
     app.add_handler(CommandHandler('alerta', alerta))
     app.add_handler(CommandHandler(['listar_alertas', 'lista_alertas', 'alertas'], listar_alertas))
     app.add_handler(CommandHandler("remover_alerta", remover_alerta))
+    app.add_handler(CommandHandler("debug", debug))
 
     # on non command i.e message - echo the message on Telegram
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, start))
