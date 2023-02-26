@@ -22,9 +22,7 @@ jobs:
         REMOTE_USER: ${{ secrets.USERNAME }}
         TARGET: ${{ secrets.TARGET_DIR }}
         SCRIPT_BEFORE: |
-          whoami
           sudo ps -ax | grep poetry | grep -v grep | awk '{print $1}' | xargs kill
         SCRIPT_AFTER: |
-          whoami
           cd ${{ secrets.TARGET_DIR }}
           nohup poetry run run-app
