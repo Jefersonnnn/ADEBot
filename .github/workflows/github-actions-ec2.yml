@@ -25,4 +25,8 @@ jobs:
           sudo ps -ax | grep poetry | grep -v grep | awk '{print $1}' | xargs kill
         SCRIPT_AFTER: |
           cd ${{ secrets.TARGET_DIR }}
+          export ADE_PASSWORD=${{ secrets.ADE_PASSWORD }}
+          export ADE_USERNAME=${{ secrets.ADE_USERNAME }}
+          export DEVELOPER_CHAT_ID=${{ secrets.DEVELOPER_CHAT_ID }}
+          export TOKEN_BOT_TELEGRAM=${{ secrets.TOKEN_BOT_TELEGRAM }}
           nohup poetry run run-app
