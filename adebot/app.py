@@ -177,38 +177,39 @@ async def listar_quadras(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def avisar_usuarios(context):
-    alertas = db_session.query(Alertas).filter_by(usuario_informado=False).all()
-    for alerta in alertas:
-        init_date = alerta.init_date
-        if init_date.minute == 0:
-            next_date = init_date + timedelta(minutes=59)
-        elif init_date.minute == 30:
-            next_date = init_date + timedelta(minutes=29)
-        else:
-            next_date = init_date + timedelta(minutes=1)
+    if eh_horario_de_funcionamento():
+        alertas = db_session.query(Alertas).filter_by(usuario_informado=False).all()
+        for alerta in alertas:
+            init_date = alerta.init_date
+            if init_date.minute == 0:
+                next_date = init_date + timedelta(minutes=59)
+            elif init_date.minute == 30:
+                next_date = init_date + timedelta(minutes=29)
+            else:
+                next_date = init_date + timedelta(minutes=1)
 
-        horario_disponivel = db_session.query(QuadraHorario).filter(
-            QuadraHorario.disponivel == 1,
-            QuadraHorario.data.has(QuadraData.id_quadra == alerta.id_quadra),
-            QuadraHorario.init_date.between(init_date, next_date)
-        ).first()
+            horario_disponivel = db_session.query(QuadraHorario).filter(
+                QuadraHorario.disponivel == 1,
+                QuadraHorario.data.has(QuadraData.id_quadra == alerta.id_quadra),
+                QuadraHorario.init_date.between(init_date, next_date)
+            ).first()
 
-        if horario_disponivel:
-            message = (
-                f"Alerta de horario disponível!\n"
-                f"<pre>Quadra: {horario_disponivel.data.quadra.nome}"
-                "</pre>\n\n"
-                f"Data: {datetime.strftime(horario_disponivel.init_date, '%d/%m/%Y %H:%M')}"
-                "\n\n"
-                f"RESERVE AGORA!"
-            )
+            if horario_disponivel:
+                message = (
+                    f"Alerta de horario disponível!\n"
+                    f"<pre>Quadra: {horario_disponivel.data.quadra.nome}"
+                    "</pre>\n\n"
+                    f"Data: {datetime.strftime(horario_disponivel.init_date, '%d/%m/%Y %H:%M')}"
+                    "\n\n"
+                    f"RESERVE AGORA!"
+                )
 
-            # Finally, send the message
-            await context.bot.send_message(
-                chat_id=alerta.chat_id, text=message, parse_mode=ParseMode.HTML
-            )
-            alerta.usuario_informado = True
-            db_session.commit()
+                # Finally, send the message
+                await context.bot.send_message(
+                    chat_id=alerta.chat_id, text=message, parse_mode=ParseMode.HTML
+                )
+                alerta.usuario_informado = True
+                db_session.commit()
 
 
 async def alerta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -300,8 +301,15 @@ def _etl_datas(context=None):
 
 
 async def etl_horarios(context=None):
-    session = login()
-    extrair_horarios(session)
+    if eh_horario_de_funcionamento():
+        session = login()
+        extrair_horarios(session)
+
+
+def eh_horario_de_funcionamento() -> bool:
+    if datetime.now().hour >= 23 or datetime.now().hour <= 5:
+        return False
+    return True
 
 
 def main():
@@ -327,7 +335,7 @@ def main():
     # ...and the error handler
     app.add_error_handler(error_handler)
 
-    app.job_queue.run_repeating(etl_quadras, interval=60 * 60 * 24 * 7, first=0)
+    app.job_queue.run_repeating(etl_quadras, interval=60 * 60 * 24 * 30, first=0)
     app.job_queue.run_repeating(etl_datas, interval=60 * 60 * 12, first=0)
     app.job_queue.run_repeating(etl_horarios, interval=60 * 10, first=0)
     app.job_queue.run_repeating(avisar_usuarios, interval=60 * 5, first=0)
