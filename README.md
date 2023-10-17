@@ -1,3 +1,5 @@
+# (desativado)
+
 ## Configuração do bot
 Requisitos
 Antes de iniciar o bot, você precisa ter instalado o Python 3 em seu sistema. Além disso, você também precisa ter o gerenciador de pacotes Poetry instalado. Para instalar o Poetry, execute o seguinte comando no terminal:
